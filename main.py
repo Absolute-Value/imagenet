@@ -21,6 +21,12 @@ import torchvision.transforms as transforms
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import Subset
 
+try:
+    import wandb
+    use_wandb = True
+except ImportError:
+    use_wandb = False
+
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
     and callable(models.__dict__[name]))
@@ -83,6 +89,13 @@ best_acc1 = 0
 
 def main():
     args = parser.parse_args()
+    if use_wandb:
+        wandb.init(
+            project="imagenet", 
+            name=f"{args.arch}_ep{args.epochs}_b{args.batch_size}_lr{args.lr}",
+            config=args
+        )
+        wandb.config.update(args)
 
     if args.seed is not None:
         random.seed(args.seed)
@@ -279,7 +292,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
         # evaluate on validation set
         acc1 = validate(val_loader, model, criterion, args)
-        
+
         scheduler.step()
         
         # remember best acc@1 and save checkpoint
@@ -343,6 +356,13 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args):
         if i % args.print_freq == 0:
             progress.display(i + 1)
 
+    if use_wandb:
+        wandb.log({
+            "train/loss": losses.avg,
+            "train/acc1": top1.avg,
+            "train/acc5": top5.avg,
+            "train/lr": optimizer.param_groups[0]['lr']
+        })
 
 def validate(val_loader, model, criterion, args):
 
@@ -402,6 +422,12 @@ def validate(val_loader, model, criterion, args):
         run_validate(aux_val_loader, len(val_loader))
 
     progress.display_summary()
+    if use_wandb:
+        wandb.log({
+            "val/loss": losses.avg,
+            "val/acc1": top1.avg,
+            "val/acc5": top5.avg
+        })
 
     return top1.avg
 
