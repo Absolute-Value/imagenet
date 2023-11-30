@@ -333,7 +333,7 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args):
 
     end = time.time()
     if use_tqdm:
-        train_loader = tqdm(train_loader)
+        train_loader = tqdm(train_loader, desc=f"Train (Ep:{epoch+1}/{args.epochs})")
     for i, (images, target) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
@@ -378,7 +378,7 @@ def validate(val_loader, model, criterion, args):
         with torch.no_grad():
             end = time.time()
             if use_tqdm:
-                loader = tqdm(loader)
+                loader = tqdm(loader, desc=f"Val")
             for i, (images, target) in enumerate(loader):
                 i = base_progress + i
                 if args.gpu is not None and torch.cuda.is_available():
