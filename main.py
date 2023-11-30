@@ -27,6 +27,12 @@ try:
 except ImportError:
     use_wandb = False
 
+try:
+    from tqdm import tqdm
+    use_tqdm = True
+except ImportError:
+    use_tqdm = False
+
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
     and callable(models.__dict__[name]))
@@ -326,6 +332,8 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args):
     model.train()
 
     end = time.time()
+    if use_tqdm:
+        train_loader = tqdm(train_loader)
     for i, (images, target) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
@@ -353,7 +361,7 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args):
         batch_time.update(time.time() - end)
         end = time.time()
 
-        if i % args.print_freq == 0:
+        if i % args.print_freq == 0 and not use_tqdm:
             progress.display(i + 1)
 
     if use_wandb:
@@ -369,6 +377,8 @@ def validate(val_loader, model, criterion, args):
     def run_validate(loader, base_progress=0):
         with torch.no_grad():
             end = time.time()
+            if use_tqdm:
+                loader = tqdm(loader)
             for i, (images, target) in enumerate(loader):
                 i = base_progress + i
                 if args.gpu is not None and torch.cuda.is_available():
@@ -393,7 +403,7 @@ def validate(val_loader, model, criterion, args):
                 batch_time.update(time.time() - end)
                 end = time.time()
 
-                if i % args.print_freq == 0:
+                if i % args.print_freq == 0 and not use_tqdm:
                     progress.display(i + 1)
 
     batch_time = AverageMeter('Time', ':6.3f', Summary.NONE)
